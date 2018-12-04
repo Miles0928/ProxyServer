@@ -18,7 +18,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             directory = os.getcwd()
         self.directory = directory
         self.hosts, self.block_list, self.proxy_list = config.loadHost()
-        
+        self.maxbuffer = 10*1024
         self.do_SETUP()
         super().__init__(*args, **kwargs)
     
@@ -133,7 +133,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             while True:
                 r, w, e = select.select(fdset, [], [])
                 if sock in r:
-                    data = sock.recv(1024)
+                    data = sock.recv(self.maxbuffer)
                     if len(data) <= 0:
                         break
                     result = self.send_data(remote, data)
@@ -141,7 +141,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         raise Exception('failed to send all data')
                 
                 if remote in r:
-                    data = remote.recv(4096)
+                    data = remote.recv(self.maxbuffer)
                     if len(data) <= 0:
                         break
                     result = self.send_data(sock, data)
@@ -166,7 +166,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def receive_data(self, sock):
         data = b''
         while True:
-            recv_data = sock.recv(4096)
+            recv_data = sock.recv(self.maxbuffer)
             if not recv_data:
                 break
             data += recv_data
@@ -203,7 +203,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def forward_data(self, sock, remote):
         while True:
-            recv_data = sock.recv(2048)
+            recv_data = sock.recv(self.maxbuffer)
             if not recv_data:
                 break
             remote.sendall(recv_data)
