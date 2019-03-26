@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 
-import os, json, queue, logging
+import os, json, queue
 import socket, select, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from config import Config
 
 config = Config()
 
+
+import logging
 logfile = config.proxyLog
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 DATE_FORMAT = "%m/%d/%Y %H:%M:%S"
 logging.basicConfig(filename=logfile, level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+
 
 class ProxyHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, directory=None, **kwargs):
         if directory is None:
             directory = os.getcwd()
         self.directory = directory
-        self.hosts, self.block_list, self.proxy_list = config.loadHost()
-        self.maxbuffer = 10*1024
+        self.block_list, self.proxy_list = config.loadHost()
+        self.maxbuffer = 10*1024                ## 10K
         self.do_SETUP()
         super().__init__(*args, **kwargs)
     
@@ -46,12 +49,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         except:
             host, port = self.Host, 443 if self.TLS else 80
         
-        host_main = '.'.join(host.split('.')[1:])
-        
-        if host in self.block_list or host_main in self.block_list:
+        if host in self.block_list:
             logging.info('[Block] {} {}'.format(host, port))
             return self.do_BLOCK()
-        elif host in self.proxy_list or host_main in self.proxy_list:
+        elif host in self.proxy_list:
             logging.info('[Forward] {} {}'.format(host, port))
             return self.do_FORWARD()
         else:
@@ -59,156 +60,133 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return self.do_PROXY(host, port)
             
     def do_PROXY(self, host, port):
-        host_ip = self.hosts.get(host, None)
-        if host_ip:
-            pass
-        else:
+        try:
+            host_ip = socket.getaddrinfo(host, port, socket.AF_INET6)[0][-1][0]
+            server_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        except:
             try:
-                host_ip = socket.getaddrinfo(host, port, socket.AF_INET6)[0][-1][0]
+                host_ip = socket.getaddrinfo(host, port, socket.AF_INET)[0][-1][0]
+                server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             except:
-                try:
-                    host_ip = socket.getaddrinfo(host, port, socket.AF_INET)[0][-1][0]
-                except:
-                    logging.info('[D2F] {} {}'.format(host, port))
-                    return self.do_FORWARD()
+                logging.info('[D2F] {} {}'.format(host, port))
+                return self.do_FORWARD()
 
-        if ':' in host_ip:
-            remote_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        else:
-            remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        client_socket = self.connection
+        
         if self.TLS:
             try:
-                remote_socket.connect_ex((host_ip, port))
-                self.wfile.write(b'HTTP/1.1 200 Connection Established\r\n\r\n')
-                self.handle_tcp(self.connection, remote_socket)
+                server_socket.connect_ex((host_ip, port))
+                client_socket.send(b'HTTP/1.1 200 Connection Established\r\n\r\n')
+                self.bi_forward(client_socket, server_socket)
             except:
-                self.wfile.write(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+                client_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+                server_socket.close()
+                client_socket.close()
         else:
             del self.headers['Proxy-Connection']
             self.headers['Connection'] = 'close'
             
-            path = self.path.rpartition(self.Host)[-1]
-            send_data = ' '.join([self.command, path, self.request_version]).encode()
-            send_data += b'\r\n'
+            raw_path = self.path.rpartition(self.Host)[-1]
+            raw_head = ' '.join([self.command, raw_path, self.request_version]).encode()
+            raw_head += b'\r\n'
             
             raw_headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
             headers = ''.join(raw_headers).encode() + b'\r\n'
             
-            self.req_payload = b''
+            raw_bytes_data = b''
 
             if self.command in ('POST', 'PUT'):
-                self.req_payload = self.read_payload()
-            send_data = send_data + headers + self.req_payload
+                raw_bytes_data = self.read_data()
+            raw_data = raw_head + headers + raw_bytes_data
             
             try:
-                remote_socket.connect_ex((host_ip, port))
-                remote_socket.sendall(send_data)
-                data = self.receive_data(remote_socket)
-                self.wfile.write(data)
+                server_socket.connect_ex((host_ip, port))
+                server_socket.sendall(raw_data)
+                self.forward(server_socket, client_socket)
             except:
-                self.wfile.write(b'HTTP/1.1 404 Connection Error\r\n\r\n')
+                server_socket.close()
+                client_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+            finally:
+                client_socket.close()
                 
     def do_FORWARD(self):
-        client_socket = self.request
+        self.maxbuffer = 20*1024                ## 20K
+        # client_socket = self.request
+        client_socket = self.connection
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.connect_ex(('localhost', 8087))
         raw_headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
         headers = ''.join(raw_headers).encode() + b'\r\n'
-        server_socket.sendall(self.raw_requestline+headers)
+        server_socket.sendall(self.raw_requestline + headers)
+        
         if self.TLS:
-            self.handle_tcp(server_socket, client_socket)
+            self.bi_forward(client_socket, server_socket)
         else:
-            self.forward_data(server_socket, client_socket)
+            self.forward(client_socket, server_socket)
     
     def do_BLOCK(self):
+        local_socket = self.connection
         if self.TLS:
-            self.wfile.write(b'HTTP/1.1 501 Connection Error\r\nError: 501\r\n\r\n')
+            ## showing a customized web
+            local_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
         else:
-            self.wfile.write(b'HTTP/1.1 501 Connection Error\r\nError: 501\r\n\r\n')
+            local_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+        local_socket.close()
     
-    def handle_tcp(self, sock, remote):
-        try:
-            fdset = [sock, remote]
-            while True:
-                r, w, e = select.select(fdset, [], [])
-                if sock in r:
-                    data = sock.recv(self.maxbuffer)
-                    if len(data) <= 0:
-                        break
-                    result = self.send_data(remote, data)
-                    if result < len(data):
-                        raise Exception('failed to send all data')
-                
-                if remote in r:
-                    data = remote.recv(self.maxbuffer)
-                    if len(data) <= 0:
-                        break
-                    result = self.send_data(sock, data)
-                    if result < len(data):
-                        raise Exception('failed to send all data')
-        except Exception as error:
-            pass
-        finally:
-            sock.close()
-            remote.close()
-    
-    def send_data(self, sock, data):
-        bytes_sent = 0
-        while True:
-            r = sock.send(data[bytes_sent:])
-            if r < 0:
-                return r
-            bytes_sent += r
-            if bytes_sent == len(data):
-                return bytes_sent
-    
-    def receive_data(self, sock):
-        data = b''
-        while True:
-            recv_data = sock.recv(self.maxbuffer)
-            if not recv_data:
-                break
-            data += recv_data
-        sock.close()
-        return data
+    # two-way forward data
+    # how to control socket close at correct time
+    def bi_forward(self, client, server):
+        fdset = [client, server]
         
-    def read_payload(self):
-        payload = b''
+        while True:
+            r, w, e = select.select(fdset, [], [])
+
+            if client in r:
+                raw_data = client.recv(self.maxbuffer)
+                if not raw_data:
+                    break
+                server.sendall(raw_data)
+                
+            if server in r:
+                raw_data = server.recv(self.maxbuffer)
+                if not raw_data:
+                    break
+                client.sendall(raw_data)
+        
+        client.close()       
+        server.close()
+
+
+    # one-way forward data
+    def forward(self, client, server):
+        while True:
+            raw_data = client.recv(self.maxbuffer)
+            if not raw_data:
+                break
+            server.sendall(raw_data)
+        
+        client.close()
+        server.close()
+            
+        
+    def read_data(self):
+        raw_bytes = b''
         if 'Content-Length' in self.headers:
             try:
-                payload_len = int(self.headers.get('Content-Length', 0))
-                payload = self.rfile.read(payload_len)
+                bytes_len = int(self.headers.get('Content-Length', 0))
+                raw_bytes = self.rfile.read(bytes_len)
             except:
-                logging.warning("handle_method_urlfetch read payload failed.")
+                pass
+                #logging.warning("handle_method_urlfetch read payload failed.")
         elif 'Transfer-Encoding' in self.headers:
-            payload = ""
             while True:
-                chunk_size_str = self.rfile.readline(65537)
-                chunk_size_list = chunk_size_str.split(";")
-                chunk_size = int("0x"+chunk_size_list[0], 0)
-                if len(chunk_size_list) > 1 and chunk_size_list[1] != "\r\n":
-                    logging.info("chunk ext: {}".format(chunk_size_str))
-                if chunk_size == 0:
-                    while True:
-                        line = self.rfile.readline(65537)
-                        if line == "\r\n":
-                            break
-                        else:
-                            logging.info("entity header: {}".format(line))
+                chunk_str = self.rfile.readline(65537)
+                chunk_list = chunk_str.split(";")
+                chunk = int("0x" + chunk_list[0], 0)
+                if chunk == 0:
                     break
-                payload += self.rfile.read(chunk_size)
-        # self.req_payload = payload
-        return payload
-
-    def forward_data(self, sock, remote):
-        while True:
-            recv_data = sock.recv(self.maxbuffer)
-            if not recv_data:
-                break
-            remote.sendall(recv_data)
-        sock.close()
-        remote.close()
+                raw_bytes += self.rfile.read(chunk)
+        return raw_bytes
         
 
 class ForwardHandler(ProxyHandler):
@@ -220,9 +198,7 @@ class ForwardHandler(ProxyHandler):
         except:
             host, port = self.Host, 443 if self.TLS else 80
         
-        host_main = '.'.join(host.split('.')[1:])
-        
-        if host in self.block_list or host_main in self.block_list:
+        if host in self.block_list:
             logging.info('[Block] {} {}'.format(host, port))
             return self.do_BLOCK()
         else:
