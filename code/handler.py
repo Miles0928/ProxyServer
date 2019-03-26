@@ -40,24 +40,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_METHOD(self):
         self.TLS = False
         self.handle_host()
-        
-    def handle_host(self):
-        self.Host = self.headers.get('Host', '')
-        host, _, port = self.Host.rpartition(':')
-        try:
-            port = int(port)
-        except:
-            host, port = self.Host, 443 if self.TLS else 80
-        
-        if host in self.block_list:
-            logging.info('[Block] {} {}'.format(host, port))
-            return self.do_BLOCK()
-        elif host in self.proxy_list:
-            logging.info('[Forward] {} {}'.format(host, port))
-            return self.do_FORWARD()
-        else:
-            logging.info('[Direct] {} {}'.format(host, port))
-            return self.do_PROXY(host, port)
             
     def do_PROXY(self, host, port):
         try:
@@ -121,7 +103,26 @@ class ProxyHandler(BaseHTTPRequestHandler):
         else:
             local_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
         local_socket.close()
+     
+    
+    def handle_host(self):
+        self.Host = self.headers.get('Host', '')
+        host, _, port = self.Host.rpartition(':')
+        try:
+            port = int(port)
+        except:
+            host, port = self.Host, 443 if self.TLS else 80
         
+        if host in self.block_list:
+            logging.info('[Block] {} {}'.format(host, port))
+            return self.do_BLOCK()
+        elif host in self.proxy_list:
+            logging.info('[Forward] {} {}'.format(host, port))
+            return self.do_FORWARD()
+        else:
+            logging.info('[Direct] {} {}'.format(host, port))
+            return self.do_PROXY(host, port)
+    
     
     def handle_headers(self, method=True)
         headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
@@ -162,7 +163,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
         
         client.close()       
         server.close()
-
 
     # one-way forward data
     def forward(self, client, server):
