@@ -86,18 +86,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             del self.headers['Proxy-Connection']
             self.headers['Connection'] = 'close'
             
-            raw_path = self.path.rpartition(self.Host)[-1]
-            raw_head = ' '.join([self.command, raw_path, self.request_version]).encode()
-            raw_head += b'\r\n'
-            
-            raw_headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
-            headers = ''.join(raw_headers).encode() + b'\r\n'
-            
-            raw_bytes_data = b''
-
-            if self.command in ('POST', 'PUT'):
-                raw_bytes_data = self.read_data()
-            raw_data = raw_head + headers + raw_bytes_data
+            raw_data = self.handle_headers(False)
             
             try:
                 server_socket.connect_ex((host_ip, port))
@@ -115,9 +104,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         client_socket = self.connection
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.connect_ex(('localhost', 8087))
-        raw_headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
-        headers = ''.join(raw_headers).encode() + b'\r\n'
-        server_socket.sendall(self.raw_requestline + headers)
+        
+        raw_headers = self.handle_headers(True)
+        server_socket.sendall(self.raw_requestline + raw_headers)
         
         if self.TLS:
             self.bi_forward(client_socket, server_socket)
@@ -132,6 +121,24 @@ class ProxyHandler(BaseHTTPRequestHandler):
         else:
             local_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
         local_socket.close()
+        
+    
+    def handle_headers(self, method=True)
+        headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
+        raw_headers = ''.join(headers).encode() + b'\r\n'
+        
+        if method:          ## FORWARD
+            return raw_headers
+        else:               ## PROXY
+            raw_path = self.path.rpartition(self.Host)[-1]
+            raw_headers_path = ' '.join([self.command, raw_path, self.request_version]).encode()
+            raw_headers_path += b'\r\n'
+
+            raw_bytes_data = b''
+            if self.command in ('POST', 'PUT'):
+                raw_bytes_data = self.read_data()
+            raw_data = raw_headers_path + raw_headers + raw_bytes_data
+            return raw_data
     
     # two-way forward data
     # how to control socket close at correct time
