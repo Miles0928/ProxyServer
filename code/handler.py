@@ -124,7 +124,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return self.do_PROXY(host, port)
     
     
-    def handle_headers(self, method=True)
+    def handle_headers(self, method=True):
         headers = ["{key}: {value}\r\n".format(key=key, value=value) for key, value in self.headers.items()]
         raw_headers = ''.join(headers).encode() + b'\r\n'
         
