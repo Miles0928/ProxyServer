@@ -154,7 +154,7 @@ class ProxyGUI():
         else:
             hostlist['Block'] = self.var_hostrule.get().strip()
         
-        config.saveHost(hostlist, True)
+        config.saveHost(True, **hostlist)
 
     def host_del(self):
         mode = True if int(self.var_radio.get()) else False
@@ -166,7 +166,7 @@ class ProxyGUI():
         else:
             hostlist['Block'] = self.var_hostrule.get().strip()
         
-        config.saveHost(hostlist, False)
+        config.saveHost(False, **hostlist)
         
     def show_msg(self, Msg_info):
         self.output['state'] = 'normal'
