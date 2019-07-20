@@ -146,26 +146,20 @@ class ProxyGUI():
 
     def host_add(self):
         mode = True if int(self.var_radio.get()) else False
-        
         hostlist = dict()
-        
         if mode:
             hostlist['Proxy'] = self.var_hostrule.get().strip()
         else:
             hostlist['Block'] = self.var_hostrule.get().strip()
-        
         config.saveHost(True, **hostlist)
 
     def host_del(self):
         mode = True if int(self.var_radio.get()) else False
-        
         hostlist = dict()
-        
         if mode:
             hostlist['Proxy'] = self.var_hostrule.get().strip()
         else:
             hostlist['Block'] = self.var_hostrule.get().strip()
-        
         config.saveHost(False, **hostlist)
         
     def show_msg(self, Msg_info):
