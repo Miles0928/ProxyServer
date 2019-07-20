@@ -36,7 +36,7 @@ class Proxy(BaseHTTPRequestHandler):
         # self.Host >>-- (host, port)
         # self.Sock_args >>-- (AF_INET[6], SOCK_STREAM)
         self.maxbuffer = self.maxbuffer*2
-        Host_local = ('10.104.6.66', 0)
+        Host_local = ('***', 0)
         client_socket = self.request
         server_socket = socket.socket(*self.Sock_args)
         server_socket.bind(Host_local)
@@ -302,7 +302,7 @@ class ProxyServer():
     def __init__(self):
         self.Q = queue.Queue()
         self.Handler = ProxyHandler
-        self.Host, self.Port = config.getConfig()
+        self.Host, self.Port = config.loadConfig()
 
     def Proxy(self, Mode):
         with ThreadingHTTPServer((self.Host, self.Port), Mode) as httpd:
