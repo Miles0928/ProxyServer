@@ -30,7 +30,7 @@ class Config():
             return host, port
     
     ## changing (host, port) and save it
-    ## **arg Host is a dict, as {'Host': **, 'Port': **}
+    ## **kwargs Host is a dict, as {'Host': **, 'Port': **}
     ## update default config file
     def saveConfig(self, **Host):
         try:
