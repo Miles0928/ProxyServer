@@ -7,7 +7,7 @@ from config import Config
 from handler import ProxyServer
 
 config = Config()
-host, port = config.getConfig()
+host, port = config.loadConfig()
 
 class ProxyGUI():
     def __init__(self):
