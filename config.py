@@ -9,7 +9,10 @@ class Config():
         self.hostFile = os.path.join(self.directory, 'data', 'hostlist.json')
         os.makedirs(os.path.dirname(self.configFile), exist_ok=True)
 
-    def getConfig(self):
+    ## loading (host, port) from config file
+    ## if exist, return host information
+    ## else create config file, set ('', 8080) and return it
+    def loadConfig(self):
         try:
             with open(self.configFile, 'r+') as fd:
                 config_info = json.load(fd)
@@ -26,6 +29,9 @@ class Config():
         finally:
             return host, port
     
+    ## changing (host, port) and save it
+    ## **arg Host is a dict, as {'Host': **, 'Port': **}
+    ## update default config file
     def saveConfig(self, **Host):
         try:
             with open(self.configFile, 'r+') as fd:
@@ -36,7 +42,9 @@ class Config():
         finally:    
             with open(self.configFile, 'w+') as fd:
                 json.dump(config_info, fd, indent=4)
-            
+    
+    ## loading proxy list and block list from hostlist.json file
+    ## if not exist, create this file and set blank list
     def loadHost(self):
         try:
             with open(self.hostFile, 'r+') as fd:
@@ -52,7 +60,10 @@ class Config():
         finally:
             return proxy_list, block_list
      
-    def saveHost(self, Host, method=True):
+    ## add or delete host information to Proxy or Block
+    ## loading origin file, and updating it
+    ## make sure that the host informaton is unique by set
+    def saveHost(self, method=True, **Host):
         try:
             with open(self.hostFile, 'r+') as fd:
                 hostlist = json.load(fd)
@@ -60,10 +71,10 @@ class Config():
             hostlist = {'Proxy': [], 'Block': []}
         finally:
             for key in Host.keys():
-                ## Proxy host
+                ## Add host into *.json file
                 if method:
                     hostlist.get(key).append(Host.get(key))
-                ## Block host
+                ## Delete host from *.json file
                 else:
                     hostlist.get(key).remove(Host.get(key))
             
