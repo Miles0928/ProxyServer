@@ -1,63 +1,76 @@
 # -*- coding: utf-8 -*-
-
 import os, json
 
 class Config():
     def __init__(self):
-        self.directory = os.getcwd()
-        self.dataPath = os.path.join(os.path.dirname(self.directory), 'data')
-        self.configFile = os.path.join(self.dataPath, 'config.json')
-        self.hostFile = os.path.join(self.dataPath, 'host.json')
-        self.blockFile = os.path.join(self.dataPath, 'blocklist.txt')
-        self.proxyFile = os.path.join(self.dataPath, 'proxylist.txt')
-        self.proxyLog = os.path.join(self.dataPath, 'proxy.log')
-        os.makedirs(self.dataPath, exist_ok=True)
+        self.configFile = os.path.join(os.getcwd(), 'data', 'config.json')
+        self.hostFile = os.path.join(os.getcwd(), 'data', 'hostlist.json')
+        os.makedirs(os.path.dirname(self.configFile), exist_ok=True)
 
-    def getConfig(self):
+    def getConfig(self, method=True):
         try:
             with open(self.configFile, 'r+') as fd:
                 config_info = json.load(fd)
-            host = config_info['host']
-            port_proxy = config_info['port_proxy']
-            port_forward = config_info['port_forward']
+            host = config_info['Host']
+            port = config_info['Port']
+            socks = config_info['Socks']
         except:
             host = ''
-            port_proxy = 8000
-            port_forward = 8001
+            port = 8080
+            socks = 1080
+            config_info = {
+                'Host': host,
+                'Port': port,
+                'Socks': socks,
+                }
+            self.saveConfig(**config_info)
         finally:
-            return host, port_proxy, port_forward
+            return host, port, socks
     
-    def saveConfig(self, host, port_proxy, port_forward):
-        config_info = {}
-        config_info['host'] = host
-        config_info['port_proxy'] = int(port_proxy)
-        config_info['port_forward'] = int(port_forward)
-        with open(self.configFile, 'w+') as fd:
-            json.dump(config_info, fd, indent=4)
+    def saveConfig(self, **Host):
+        try:
+            with open(self.configFile, 'r+') as fd:
+                config_info = json.load(fd)
+                config_info.update(Host)
+        except:
+            config_info = Host
+        finally:    
+            with open(self.configFile, 'w+') as fd:
+                json.dump(config_info, fd, indent=4)
             
     def loadHost(self):
         try:
             with open(self.hostFile, 'r+') as fd:
-                hosts = json.load(fd)
-            with open(self.blockFile, 'r+') as fd:
-                block_list = fd.readlines()
-                block_list = [host[:-1] if '\n' in host else host for host in block_list]
-            with open(self.proxyFile, 'r+') as fd:
-                proxy_list = fd.readlines()
-                proxy_list = [host[:-1] if '\n' in host else host for host in proxy_list]
+                hostlist = json.load(fd)
+            proxy_list = hostlist.get('Proxy', [])
+            block_list = hostlist.get('Block', [])
+            ipv4_list = hostlist.get('IPv4', [])
         except:
-            hosts = {}
-            block_list = []
             proxy_list = []
+            block_list = []
+            ipv4_list = []
+            hostlist = {'Proxy': [], 'Block': [], 'IPv4': []}
+            with open(self.hostFile, 'w+') as fd:
+                json.dump(hostlist, fd, indent=4)
         finally:
-            return hosts, block_list, proxy_list
+            return proxy_list, block_list, ipv4_list
+     
+    def saveHost(self, Host, method=True):
+        try:
+            with open(self.hostFile, 'r+') as fd:
+                hostlist = json.load(fd)
+        except:
+            hostlist = {'Proxy': [], 'Block': [], 'IPv4': []}
+        finally:
+            for key in Host.keys():
+                ## Proxy host
+                if method:
+                    hostlist.get(key).append(Host.get(key))
+                ## Block host
+                else:
+                    hostlist.get(key).remove(Host.get(key))
             
-    def saveHost(self, host, type=True):
-        if type:
-            with open(self.blockFile, 'a+') as fd:
-                fd.write(host)
-                fd.write('\n')
-        else:
-            with open(self.proxy_list, 'a+') as fd:
-                fd.write(host)
-                fd.write('\n')
+            hostlist[key] = list(set(hostlist.get(key)))
+            
+            with open(self.hostFile, 'w+') as fd:
+                json.dump(hostlist, fd, indent=4)

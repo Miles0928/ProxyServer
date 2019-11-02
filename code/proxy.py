@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import tkinter as tk
 from tkinter import ttk
 import os, threading
@@ -7,164 +6,161 @@ import os, threading
 from config import Config
 from handler import ProxyServer
 
+config = Config()
+server = ProxyServer()
+localhost, port, socks = config.getConfig()
 
-class ProxyGUI():
+class indexPage():
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title('HTTP Proxy')
-        self.root.geometry('325x240')
-        self.root.resizable(0, 0)
-        if os.path.exists(r'.\proxy.ico'):
-            self.root.iconbitmap(r'.\proxy.ico')
-        
-        menu = tk.Menu(self.root, tearoff=False)
-        self.root.config(menu=menu)
-        
-        optionmenu = tk.Menu(menu, tearoff=False)
-        menu.add_cascade(label='Options', menu=optionmenu)
-        optionmenu.add_command(label='Setup', command=self.proxy_option)
-        
-        helpmenu = tk.Menu(menu, tearoff=False)
-        menu.add_cascade(label='Help', menu=helpmenu)
-        helpmenu.add_command(label='About', command=self.proxy_help)
-        
-        
-        mainFrame_top = ttk.Frame(self.root)
-        mainFrame_top.grid(row=0, column=0, padx=34, pady=10)
-        
-        mainLabel = tk.Label(mainFrame_top, text='Welcome to the HTTP Proxy Server', font=('Times', 12, 'bold'), anchor='center', bg='#CCE5FF', fg='#004085')
-        mainLabel.grid(row=0, column=0, columnspan=3, pady=10, ipadx=5)
+        self.root = infoPage = tk.Tk()
+        infoPage.title('网络代理系统')
+        infoPage.geometry('300x320')
+        infoPage.resizable(0, 0)
 
-        mainFrame_middle = ttk.Frame(self.root)
-        mainFrame_middle.grid(row=1, column=0, pady=10)
+        Fts_mainLabel = ('Microsoft YaHei', 12, 'bold')
+        Fts_Label = ('Microsoft YaHei', 9, 'bold')
+        Fts_Text = ('Microsoft YaHei', 9, 'normal')
+        Fts_Button = ('Microsoft YaHei', 9, 'normal')
+        Fts_minButton = ('Microsoft YaHei', 8, 'normal')
         
-        self.start = tk.Button(mainFrame_middle, text='Start', width=8, bg='#DC3545', fg='#FFF', command=self.proxy_start)
-        self.start.grid(row=0, column=0, padx=25)
-        self.stop = tk.Button(mainFrame_middle, text='Stop', width=8, bg='#28A745', fg='#FFF', command=self.proxy_stop)
-        self.stop.grid(row=0, column=1, padx=25)
-        self.stop['state'] = 'disabled'
+        try:
+            infoPage.iconbitmap(r'{}\Grd.System.ico'.format(user.path_image))
+        except:
+            pass
         
+        Top_Frame = ttk.Frame(infoPage)
+        Top_Frame.grid(row=0, column=0, padx=90, pady=15)
+        mainlabel = tk.Label(Top_Frame, text='网络代理系统', font=Fts_mainLabel, anchor='center', bg='#D4EDDA', fg='#155724')
+        mainlabel.grid(row=0, column=0, pady=0, ipadx=9)
+        
+        Mid_Frame = ttk.LabelFrame(infoPage, text='代理设置')
+        Mid_Frame.grid(row=1, column=0, pady=0)
+        Mid_Frame_L = ttk.Frame(Mid_Frame)
+        Mid_Frame_L.grid(row=0, column=0, padx=5)
+        Mid_Frame_R = ttk.Frame(Mid_Frame)
+        Mid_Frame_R.grid(row=0, column=1, padx=5)
+        
+        localhostLabel = tk.Label(Mid_Frame_L, text='主机:', width=8, bg='#F8D7DA', fg='#721C24', font=Fts_Label)
+        localhostLabel.grid(row=0, column=0, padx=5, pady=5)
+        portLabel = tk.Label(Mid_Frame_L, text='端口:', width=8, bg='#F8D7DA', fg='#721C24', font=Fts_Label)
+        portLabel.grid(row=1, column=0, padx=5, pady=5)
+        socksLabel = tk.Label(Mid_Frame_L, text='代理:', width=8, bg='#F8D7DA', fg='#721C24', font=Fts_Label)
+        socksLabel.grid(row=2, column=0, padx=5, pady=5)
+        self.var_localhost = tk.StringVar()
+        self.var_localhost.set(localhost)
+        self.var_port = tk.StringVar()
+        self.var_port.set(port)
+        self.var_socks = tk.StringVar()
+        self.var_socks.set(socks)
+        self.localhostEntry = tk.Entry(Mid_Frame_L, textvariable=self.var_localhost, width=8, fg='#721C24', show='*', font=Fts_Text)
+        self.localhostEntry.grid(row=0, column=1, padx=5)
+        self.portEntry = tk.Entry(Mid_Frame_L, textvariable=self.var_port, width=8, fg='#721C24', show='*', font=Fts_Text)
+        self.portEntry.grid(row=1, column=1, padx=5)
+        self.socksEntry = tk.Entry(Mid_Frame_L, textvariable=self.var_socks, width=8, fg='#721C24', show='*', font=Fts_Text)
+        self.socksEntry.grid(row=2, column=1, padx=5)
+        
+        self.funButton = tk.Button(Mid_Frame_R, text='启动', width=8, bg='#007BFF', fg='#FFF', font=Fts_Button, command=lambda: self.proxy_start())
+        self.funButton.grid(row=0, column=0, padx=5, pady=8)
+        self.saveButton = tk.Button(Mid_Frame_R, text='显示', width=8, bg='#28A745', fg='#FFF', font=Fts_Button, command=lambda: self.proxy_display())
+        self.saveButton.grid(row=1, column=0, padx=5, pady=8)
+        
+        # login page button: call usr_login or clear_info function
+        Down_Frame = ttk.LabelFrame(infoPage, text='域名规则')
+        Down_Frame.grid(row=2, column=0, pady=10)
+        
+        Down_Frame_T = ttk.Frame(Down_Frame)
+        Down_Frame_T.grid(row=0, column=0)
+        Down_Frame_M = ttk.Frame(Down_Frame)
+        Down_Frame_M.grid(row=1, column=0)
+        Down_Frame_D = ttk.Frame(Down_Frame)
+        Down_Frame_D.grid(row=2, column=0)
+        
+        self.var_type = tk.StringVar()
+        self.var_type.set('0')
+        proxyRadio = tk.Radiobutton(Down_Frame_T, text='代理', width=5, fg='#007BFF', variable=self.var_type, anchor='w', value='0')
+        proxyRadio.grid(row=0, column=0, pady=0, padx=5, sticky='w')
+        blockRadio = tk.Radiobutton(Down_Frame_T, text='拦截', width=5, fg='#DC3545', variable=self.var_type, anchor='w', value='1')
+        blockRadio.grid(row=0, column=1, pady=0, padx=5, sticky='w')
+        directRadio = tk.Radiobutton(Down_Frame_T, text='IPv4', width=5, fg='#28A745', variable=self.var_type, anchor='w', value='2')
+        directRadio.grid(row=0, column=2, pady=0, padx=5, sticky='w')
+        
+        hostLabel = tk.Label(Down_Frame_M, text='域名:', width=8, bg='#D1ECF1', fg='#0C5460', font=Fts_Label)
+        hostLabel.grid(row=0, column=0, padx=8, pady=5)
+        self.var_hostrule = tk.StringVar()
+        hostEntry = tk.Entry(Down_Frame_M, width=20, textvariable=self.var_hostrule, fg='#0C5460')
+        hostEntry.grid(row=0, column=1, padx=8, pady=5)
 
-        mainFrame_down = ttk.Frame(self.root)
-        mainFrame_down.grid(row=2, column=0, pady=15)
-        
-        self.output = tk.Text(mainFrame_down, width=25, height=4, bg='lightblue', font=('Microsoft YaHei', 10, 'normal'), padx=5, pady=5)
-        self.output.pack(expand=1, fill='both')
-        self.output['state'] = 'disabled'
-        self.output.bind("<Key>", lambda _: "break")
-        
-        self.root.mainloop()
+        self.addButton = tk.Button(Down_Frame_D, text='添加', width=6, bg='#DDD', fg='#DC3545', font=Fts_minButton, command=lambda: self.host_add())
+        self.addButton.grid(row=0, column=0, padx=20, pady=5)
+        self.delButton = tk.Button(Down_Frame_D, text='移除', width=6, bg='#DDD', fg='#DC3545', font=Fts_minButton, command=lambda: self.host_del())
+        self.delButton.grid(row=0, column=1, padx=20, pady=5)
+
+        infoPage.mainloop()    
     
     def proxy_start(self):
-        methods = (True, True)
-        self.server = ProxyServer(methods)
-        thread = threading.Thread(target=self.server.start, args=())
+        self.funButton['text'] = '暂停'
+        self.funButton['bg'] = '#DC3545'
+        self.funButton['command'] = self.proxy_stop
+        self.saveButton['state'] = 'disabled'
+        self.addButton['state'] = 'disabled'
+        self.delButton['state'] = 'disabled'
+        self.proxy_hidden()
+
+        thread = threading.Thread(target=server.start, args=())
         thread.setDaemon(True)
         thread.start()
-
-        self.start['state'] = 'disabled'
-        self.stop['state'] = 'normal'
-        
-        msg_info = 'Proxy Server is running!'
-        self.show_msg(msg_info)
-
-    def show_msg(self, Msg_info):
-        self.output['state'] = 'normal'
-        self.output.delete(0.0, tk.END)
-        self.output.insert(tk.END, Msg_info)
-        self.output['state'] = 'disabled'
 
     def proxy_stop(self):
-        thread = threading.Thread(target=self.server.stop, args=())
+        self.funButton['text'] = '启动'
+        self.funButton['bg'] = '#007BFF'
+        self.funButton['command'] = self.proxy_start
+        
+        self.saveButton['state'] = 'normal'
+        self.addButton['state'] = 'normal'
+        self.delButton['state'] = 'normal'
+        
+        thread = threading.Thread(target=server.stop, args=())
         thread.setDaemon(True)
         thread.start()
-        self.stop['state'] = 'disabled'
-        self.start['state'] = 'normal'
+    
+    def proxy_display(self):
+        self.saveButton['text'] = '保存'
+        self.saveButton['command'] = self.proxy_save
+        self.localhostEntry['show'] = ''
+        self.portEntry['show'] = ''
+        self.socksEntry['show'] = ''
         
-        msg_info = 'Proxy Server has stopped!'
-        self.show_msg(msg_info)
-        
-    def proxy_help(self):
-        helpPage(self.root)
-        
-    def proxy_option(self):
-        optionPage(self.root)
+    def proxy_hidden(self):
+        self.saveButton['text'] = '显示'
+        self.saveButton['command'] = self.proxy_display
+        self.localhostEntry['show'] = '*'
+        self.portEntry['show'] = '*'
+        self.socksEntry['show'] = '*'
+    
+    def proxy_save(self):
+        self.proxy_hidden()
 
+        localHost = {
+                'Host': self.var_localhost.get().strip(),
+                'Port': int(self.var_port.get().strip()),
+                'Socks': int(self.var_socks.get().strip()),
+            }
+        config.saveConfig(**localHost)
+        
+    def host_add(self):
+        hostindex = {'0': "Proxy", '1': "Block", '2': "IPv4"}
+        mode = self.var_type.get()
+        hostlist = {hostindex[mode]: self.var_hostrule.get().strip()}
+        
+        config.saveHost(hostlist, True)
 
-class optionPage():
-    def __init__(self, master):
-        self.root = tk.Toplevel(master)
-        self.root.title('HTTP Proxy')
-        self.root.geometry('240x180')
-        self.root.resizable(0, 0)
-        if os.path.exists(r'.\proxy.ico'):
-            self.root.iconbitmap(r'.\proxy.ico')
+    def host_del(self):
+        hostindex = {'0': "Proxy", '1': "Block", '2': "IPv4"}
+        mode = self.var_type.get()
+        hostlist = {hostindex[mode]: self.var_hostrule.get().strip()}
+        
+        config.saveHost(hostlist, False)
             
-        self.config = Config()
-        self.host_config = self.config.getConfig()
             
-        mainFrame_top = ttk.Frame(self.root)
-        mainFrame_top.grid(row=0, column=0, padx=38, pady=15)
-        
-        host = tk.Label(mainFrame_top, width=6, text='Host:', fg='#00B') 
-        host.grid(row=0, column=0, pady=5)
-        port_proxy = tk.Label(mainFrame_top, width=6, text='Port:', fg='#00B')
-        port_proxy.grid(row=1, column=0, pady=5)
-        port_forward = tk.Label(mainFrame_top, width=6, text='Port:', fg='#00B')
-        port_forward.grid(row=2, column=0, pady=5)
-        label_proxy = tk.Label(mainFrame_top, width=8, text='(Proxy)', fg='#00B', anchor='w')
-        label_proxy.grid(row=1, column=2, pady=5, sticky='w')
-        label_forward = tk.Label(mainFrame_top, width=8, text='(Forward)', fg='#00B', anchor='w')
-        label_forward.grid(row=2, column=2, pady=5, sticky='w')
-        
-        self.var_host = tk.StringVar()
-        self.var_host.set(self.host_config[0])
-        self.var_port_proxy = tk.StringVar()
-        self.var_port_proxy.set(self.host_config[1])
-        self.var_port_forward = tk.StringVar()
-        self.var_port_forward.set(self.host_config[2])
-        hostEntry = tk.Entry(mainFrame_top, textvariable=self.var_host, width=16)
-        hostEntry.grid(row=0, column=1, columnspan=2, pady=5)
-        portEntry_proxy = tk.Entry(mainFrame_top, textvariable=self.var_port_proxy, width=7)
-        portEntry_proxy.grid(row=1, column=1, pady=5)
-        portEntry_forward = tk.Entry(mainFrame_top, textvariable=self.var_port_forward, width=7)
-        portEntry_forward.grid(row=2, column=1, pady=5)
-
-        mainFrame_middle = ttk.Frame(self.root)
-        mainFrame_middle.grid(row=1, column=0, pady=5)
-        
-        savehost = tk.Button(mainFrame_middle, text='Save', width=6, bg='#007BEE', fg='#FFF', font=('Microsoft YaHei', 8, 'normal'), command=self.save)
-        savehost.grid(row=0, column=0, padx=10)
-        resethost = tk.Button(mainFrame_middle, text='Switch', width=6, bg='#28A745', fg='#FFF', font=('Microsoft YaHei', 8, 'normal'), command=self.switch)
-        resethost.grid(row=0, column=1, padx=10)
-        resethost = tk.Button(mainFrame_middle, text='Reset', width=6, bg='#DC3545', fg='#FFF', font=('Microsoft YaHei', 8, 'normal'), command=self.reset)
-        resethost.grid(row=0, column=2, padx=10)
-        
-        self.root.mainloop()
-
-    def save(self):
-        host = self.var_host.get().strip()
-        port_proxy = self.var_port_proxy.get().strip()
-        port_forward = self.var_port_forward.get().strip()
-        self.config.saveConfig(host, port_proxy, port_forward)
-        self.root.destroy()
-        
-    def switch(self):
-        host = self.var_host.get().strip()
-        port_forward = self.var_port_proxy.get().strip()
-        port_proxy = self.var_port_forward.get().strip()
-        self.config.saveConfig(host, port_proxy, port_forward)
-        self.root.destroy()
-        
-    def reset(self):
-        self.var_host.set('')
-        self.var_port_proxy.set('8000')
-        self.var_port_forward.set('8001')
-
-
-class helpPage():
-    def __init__(self, master):
-        pass
-
 if __name__ == '__main__':
-    Proxy_Windows()
+    indexPage()
