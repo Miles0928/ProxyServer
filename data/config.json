@@ -1,5 +1,5 @@
 {
-    "host": "",
-    "port": 8000,
-    "port_forward": 8001
+    "Host": "",
+    "Port": 8080,
+    "Socks": 1082
 }
