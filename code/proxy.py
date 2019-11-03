@@ -13,7 +13,7 @@ localhost, port, socks = config.getConfig()
 class indexPage():
     def __init__(self):
         self.root = infoPage = tk.Tk()
-        infoPage.title('网络代理系统')
+        infoPage.title('网络代理工具')
         infoPage.geometry('300x320')
         infoPage.resizable(0, 0)
 
@@ -24,13 +24,13 @@ class indexPage():
         Fts_minButton = ('Microsoft YaHei', 8, 'normal')
         
         try:
-            infoPage.iconbitmap(r'{}\Grd.System.ico'.format(user.path_image))
+            infoPage.iconbitmap(f'{os.getcwd()}\ProxyServer.ico')
         except:
             pass
         
         Top_Frame = ttk.Frame(infoPage)
         Top_Frame.grid(row=0, column=0, padx=90, pady=15)
-        mainlabel = tk.Label(Top_Frame, text='网络代理系统', font=Fts_mainLabel, anchor='center', bg='#D4EDDA', fg='#155724')
+        mainlabel = tk.Label(Top_Frame, text='网络代理工具', font=Fts_mainLabel, anchor='center', bg='#D4EDDA', fg='#155724')
         mainlabel.grid(row=0, column=0, pady=0, ipadx=9)
         
         Mid_Frame = ttk.LabelFrame(infoPage, text='代理设置')
@@ -91,9 +91,11 @@ class indexPage():
         hostEntry.grid(row=0, column=1, padx=8, pady=5)
 
         self.addButton = tk.Button(Down_Frame_D, text='添加', width=6, bg='#DDD', fg='#DC3545', font=Fts_minButton, command=lambda: self.host_add())
-        self.addButton.grid(row=0, column=0, padx=20, pady=5)
+        self.addButton.grid(row=0, column=0, padx=10, pady=5)
+        self.viewButton = tk.Button(Down_Frame_D, text='查看', width=6, bg='#DDD', fg='#DC3545', font=Fts_minButton, command=lambda: self.host_view())
+        self.viewButton.grid(row=0, column=1, padx=10, pady=5)
         self.delButton = tk.Button(Down_Frame_D, text='移除', width=6, bg='#DDD', fg='#DC3545', font=Fts_minButton, command=lambda: self.host_del())
-        self.delButton.grid(row=0, column=1, padx=20, pady=5)
+        self.delButton.grid(row=0, column=2, padx=10, pady=5)
 
         infoPage.mainloop()    
     
@@ -150,17 +152,149 @@ class indexPage():
     def host_add(self):
         hostindex = {'0': "Proxy", '1': "Block", '2': "IPv4"}
         mode = self.var_type.get()
-        hostlist = {hostindex[mode]: self.var_hostrule.get().strip()}
-        
+        if hostrule := self.var_hostrule.get().strip():
+            hostlist = {hostindex[mode]: hostrule}
+        else:
+            return None
+        self.var_hostrule.set('')
         config.saveHost(hostlist, True)
 
     def host_del(self):
         hostindex = {'0': "Proxy", '1': "Block", '2': "IPv4"}
         mode = self.var_type.get()
-        hostlist = {hostindex[mode]: self.var_hostrule.get().strip()}
-        
+        if hostrule := self.var_hostrule.get().strip():
+            hostlist = {hostindex[mode]: hostrule}
+        else:
+            return None
+        self.var_hostrule.set('')
         config.saveHost(hostlist, False)
+        
+    def host_view(self):
+        viewHost(self.root)
             
+class viewHost():
+    def __init__(self, master):
+        self.root = hostPage = tk.Toplevel(master)
+        hostPage.title('网络代理工具')
+        hostPage.geometry('300x250')
+        hostPage.resizable(0, 0)
+        hostPage.attributes("-topmost", 1)
+
+        Fts_mainLabel = ('Microsoft YaHei', 12, 'bold')
+        Fts_Label = ('Microsoft YaHei', 9, 'bold')
+        Fts_Text = ('Microsoft YaHei', 9, 'normal')
+        Fts_Button = ('Microsoft YaHei', 9, 'normal')
+        Fts_minButton = ('Microsoft YaHei', 8, 'normal')
+        
+        try:
+            hostPage.iconbitmap(f'{os.getcwd()}\ProxyServer.ico')
+        except:
+            pass
+        
+        Top_Frame = ttk.Frame(hostPage)
+        Top_Frame.grid(row=0, column=0, padx=90, pady=15)
+        mainlabel = tk.Label(Top_Frame, text='网络代理工具', font=Fts_mainLabel, anchor='center', bg='#D4EDDA', fg='#155724')
+        mainlabel.grid(row=0, column=0, pady=0, ipadx=9)
+        
+        Mid_Frame = ttk.LabelFrame(hostPage, text='域名规则')
+        Mid_Frame.grid(row=1, column=0, pady=0)
+        
+        Mid_Frame_T = ttk.Frame(Mid_Frame)
+        Mid_Frame_T.grid(row=0, column=0, pady=0)
+        Mid_Frame_D = ttk.Frame(Mid_Frame)
+        Mid_Frame_D.grid(row=1, column=0, padx=5, pady=0)
+        
+        Mid_Frame_BG = ttk.Frame(Mid_Frame_D)
+        Mid_Frame_BG.grid(row=0, column=0, columnspan=2, rowspan=5, sticky='wens')
+        
+        self.var_type = tk.StringVar()
+        self.var_type.set('0')
+        proxyRadio = tk.Radiobutton(Mid_Frame_T, text='代理', width=5, fg='#007BFF', variable=self.var_type, command=lambda: self.host_select(), anchor='w', value='0')
+        proxyRadio.grid(row=0, column=0, padx=5, sticky='w')
+        blockRadio = tk.Radiobutton(Mid_Frame_T, text='拦截', width=5, fg='#DC3545', variable=self.var_type, command=lambda: self.host_select(), anchor='w', value='1')
+        blockRadio.grid(row=0, column=1, padx=5, sticky='w')
+        directRadio = tk.Radiobutton(Mid_Frame_T, text='IPv4', width=5, fg='#28A745', variable=self.var_type, command=lambda: self.host_select(), anchor='w', value='2')
+        directRadio.grid(row=0, column=2, padx=5, sticky='w')
+        proxyRadio.select()
+        
+        self.hostRule = [0]*6
+        self.var_hostRule = [0]*6
+        
+        for i in range(6):
+            self.var_hostRule[i] = tk.StringVar(hostPage)
+            self.var_hostRule[i].set('')
             
+            self.hostRule[i] = tk.Entry(Mid_Frame_D, textvariable=self.var_hostRule[i], width=15, font=Fts_Text)
+            self.hostRule[i].grid(row=i//2, column=i%2, padx=5, pady=5)
+            self.hostRule[i]['state'] = 'readonly'
+        
+        Down_Frame = ttk.Frame(hostPage)
+        Down_Frame.grid(row=2, column=0, pady=10)
+        
+        previousbutton = tk.Button(Down_Frame, text='上一页', width=6, bg='#DDD', fg='#007BFF', command=lambda: self.previous(), font=Fts_minButton)
+        previousbutton.grid(row=0, column=1, padx=25)
+        nextbutton = tk.Button(Down_Frame, text='下一页', width=6, bg='#DDD', fg='#007BFF', command=lambda: self.next(), font=Fts_minButton)
+        nextbutton.grid(row=0, column=2, padx=25)
+        
+        self.assign_init()
+        
+    def assign_init(self, mode='0'):
+        hostindex = {'0': "Proxy", '1': "Block", '2': "IPv4"}
+        colorindex = {'0': "#007BFF", '1': "#DC3545", '2': "#28A745"}
+        proxy_list, block_list, ipv4_list = config.loadHost()
+        hostlist = {'Proxy': proxy_list, 'Block': block_list, 'IPv4': ipv4_list}
+        
+        self.host_list = hostlist.get(hostindex[mode])
+        self.host_color = colorindex.get(mode)
+        
+        course_sum = len(self.host_list)
+        
+        self.Page = (course_sum - 1)//6
+        if self.Page < 0:
+            self.Page = 0
+        
+        self.Re = course_sum%6
+        self.page = 0
+        
+        if course_sum < 6:
+            self.assignvalue(self.Re)
+        else:
+            self.assignvalue()
+        
+        
+    def assignvalue(self, m=6):
+        for i in range(m):
+            j = 6*self.page + i
+            self.hostRule[i]['fg'] = self.host_color
+            self.var_hostRule[i].set(self.host_list[j])
+            
+        if m < 6:
+            for i in range(m, 6):
+                self.var_hostRule[i].set('')
+    
+    def previous(self):
+        if self.page != 0:
+            self.page -= 1
+            self.assignvalue()
+        else:
+            pass
+
+    def next(self):
+        if self.page != self.Page:
+            self.page += 1
+            if self.page < self.Page:
+                self.assignvalue()
+            else:
+                if self.Re != 0:
+                    self.assignvalue(self.Re)
+                else:
+                    self.assignvalue()
+        else:
+            pass
+    
+    def host_select(self):
+        mode = self.var_type.get()
+        self.assign_init(mode)         
+         
 if __name__ == '__main__':
     indexPage()

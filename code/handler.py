@@ -45,25 +45,25 @@ class Proxy(BaseHTTPRequestHandler):
                 server_socket.connect(self.Host)
             except:
                 server_socket = socket.socket(*self.Sock_args)
-                server_socket.connect(self.Host)
+                server_socket.connect_ex(self.Host)
         else:
             try:
                 server_socket = socket.socket(*self.Sock_args)
                 server_socket.connect(self.Host)
             except:
                 server_socket = socket.socket(*self.Sock_args_v6)
-                server_socket.connect(self.Host)
+                server_socket.connect_ex(self.Host)
         
         self.Host_in = client_socket.getpeername()[0]
         self.Host_out = server_socket.getsockname()[0]
-        print('Proxy: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
+        # print('Proxy: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
         
         if self.TLS:
             try:
                 client_socket.sendall(b'HTTP/1.1 200 Connection Established\r\n\r\n')
                 self.bi_forward(client_socket, server_socket)
             except:
-                client_socket.sendall(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+                # client_socket.sendall(b'HTTP/1.1 501 Connection Error\r\n\r\n')
                 server_socket.close()
                 client_socket.close()
         else:
@@ -77,7 +77,7 @@ class Proxy(BaseHTTPRequestHandler):
                 self.forward(server_socket, client_socket)
             except:
                 server_socket.close()
-                client_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+                # client_socket.send(b'HTTP/1.1 501 Connection Error\r\n\r\n')
             finally:
                 pass
 
@@ -93,7 +93,7 @@ class Proxy(BaseHTTPRequestHandler):
         
         self.Host_in = client_socket.getpeername()[0]
         self.Host_out = server_socket.getsockname()[0]
-        print('VPN: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
+        # print('VPN: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
         
         
         if self.TLS:
@@ -101,7 +101,7 @@ class Proxy(BaseHTTPRequestHandler):
                 client_socket.sendall(b'HTTP/1.1 200 Connection Established\r\n\r\n')
                 self.bi_forward(client_socket, server_socket)
             except:
-                client_socket.sendall(b'HTTP/1.1 501 Connection Error\r\n\r\n')
+                # client_socket.sendall(b'HTTP/1.1 501 Connection Error\r\n\r\n')
                 server_socket.close()
                 client_socket.close()
         else:
@@ -118,7 +118,7 @@ class Proxy(BaseHTTPRequestHandler):
         
         self.Host_in = client_socket.getpeername()[0]
         self.Host_out = None
-        print('Block: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
+        # print('Block: {} {} [ {} -->> {} ]'.format(*self.Host, self.Host_in, self.Host_out))
         
         if self.TLS:
             client_socket.sendall(b'HTTP/1.1 501 Connection Error\r\n\r\n')
