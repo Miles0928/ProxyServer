@@ -225,7 +225,7 @@ class ProxyHandler(Proxy):
         self.Sock_args = tuple(self.sock_args.values())
         self.Sock_args_v6 = tuple(self.sock_args_v6.values())
         
-        host_main = '.'.join(host_list[1:]) if len(host_list := host.split('.')) > 2 else host
+        host_main = '.'.join(host_list[1:]) if len(host_list := host.split('.')) != 2 else host
         host_all = host
         
         if host_main in self.black_list:
