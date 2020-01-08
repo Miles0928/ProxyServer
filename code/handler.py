@@ -12,7 +12,7 @@ class Proxy(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.maxbuffer = 2*1024        # 2K
         # self.Socks = Socks
-        self.Socks = config.getConfig()
+        self.Socks = config.getConfig()[-1]
         self.sock_args = {'Family': socket.AF_INET,'Type': socket.SOCK_STREAM}
         self.sock_args_v6 = {'Family': socket.AF_INET6,'Type': socket.SOCK_STREAM}
         self.do_SETUP()
